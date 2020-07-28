@@ -63,19 +63,23 @@ class User {
           this[name] = new Date(json[name]);
           break;
         default:
-          this[name] = json[name];
+          if (name.substring(0, 1) === '_') this[name] = json[name];
       }
     }
   }
 
   static getUsersStorage() {
-    let users = [];
+    return HttpRequest.get('/users');
+  }
 
-    if (localStorage.getItem('users')) {
-      users = JSON.parse(localStorage.getItem('users'));
-    }
+  toJSON() {
+    let json = {};
 
-    return users;
+    Object.keys(this).forEach((key) => {
+      if (this[key] !== undefined) json[key] = this[key];
+    });
+
+    return json;
   }
 
   getNewID() {
@@ -91,33 +95,27 @@ class User {
   }
 
   save() {
-    let users = User.getUsersStorage();
+    return new Promise((resolve, reject) => {
+      let promise;
 
-    if (this.id > 0) {
-      users.map((u) => {
-        if (u._id == this.id) {
-          Object.assign(u, this);
-        }
+      if (this.id) {
+        promise = HttpRequest.put(`/users/${this.id}`, this.toJSON());
+      } else {
+        promise = HttpRequest.post(`/users`, this.toJSON());
+      }
 
-        return u;
-      });
-    } else {
-      this._id = this.getNewID();
+      promise
+        .then((data) => {
+          this.loadFromJSON(data);
 
-      users.push(this);
-    }
-
-    localStorage.setItem('users', JSON.stringify(users));
+          resolve(this);
+        })
+        .catch((e) => {
+          reject(e);
+        });
+    });
   }
   remove() {
-    let users = User.getUsersStorage();
-
-    users.forEach((userData, index) => {
-      if (this._id == userData._id) {
-        users.splice(index, 1);
-      }
-    });
-
-    localStorage.setItem('users', JSON.stringify(users));
+    return HttpRequest.delete(`/users/${this.id}`);
   }
 }

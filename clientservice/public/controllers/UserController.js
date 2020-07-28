@@ -40,15 +40,15 @@ class UserController {
 
           user.loadFromJSON(result);
 
-          user.save();
+          user.save().then((user) => {
+            this.setTr(user, tr);
 
-          this.setTr(user, tr);
+            this.updateCount();
 
-          this.updateCount();
+            location.reload();
 
-          location.reload();
-
-          btn.disabled = false;
+            btn.disabled = false;
+          });
         },
         (e) => {
           console.error(e);
@@ -69,13 +69,13 @@ class UserController {
         (content) => {
           values.photo = content;
 
-          values.save();
+          values.save().then((user) => {
+            this.addLine(values);
 
-          this.addLine(values);
+            this.formEl.reset();
 
-          this.formEl.reset();
-
-          btn.disabled = false;
+            btn.disabled = false;
+          });
         },
         (e) => {
           console.error(e);
@@ -89,10 +89,7 @@ class UserController {
     let isValid = true;
 
     [...formEl.elements].forEach((field) => {
-      if (
-        ['name', 'email', 'password'].indexOf(field.name) > -1 &&
-        !field.value
-      ) {
+      if (['name', 'email', 'password'].indexOf(field.name) > -1 && !field.value) {
         field.parentElement.classList.add('has-error');
         isValid = false;
       }
@@ -150,14 +147,14 @@ class UserController {
     });
   }
   selectAll() {
-    let users = User.getUsersStorage();
+    User.getUsersStorage().then((data) => {
+      data.users.forEach((dataUser) => {
+        let user = new User();
 
-    users.forEach((dataUser) => {
-      let user = new User();
+        user.loadFromJSON(dataUser);
 
-      user.loadFromJSON(dataUser);
-
-      this.addLine(user);
+        this.addLine(user);
+      });
     });
   }
 
@@ -173,11 +170,15 @@ class UserController {
     if (tr === null) tr = document.createElement('tr');
 
     tr.dataset.user = JSON.stringify(dataUser);
+    let photo;
+    if (dataUser.photo == undefined) {
+      photo = './dist/img/boxed-bg.jpg';
+    } else {
+      photo = dataUser.photo;
+    }
 
     tr.innerHTML = `
-            <td><img src=${
-              dataUser.photo
-            } alt="User Image" class="img-circle img-sm"></td>
+            <td><img src="${photo}" alt="User Image" class="img-circle img-sm"></td>
             <td>${dataUser.name}</td>
             <td>${dataUser.email}</td>
             <td>${dataUser.admin ? 'Sim' : 'Não'}</td>
@@ -211,9 +212,7 @@ class UserController {
       this.formUpdateEl.dataset.trIndex = tr.sectionRowIndex;
 
       for (let name in json) {
-        let field = this.formUpdateEl.querySelector(
-          '[name=' + name.replace('_', '') + ']'
-        );
+        let field = this.formUpdateEl.querySelector('[name=' + name.replace('_', '') + ']');
 
         if (field) {
           switch (field.type) {
