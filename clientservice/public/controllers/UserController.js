@@ -238,7 +238,6 @@ class UserController {
       }
 
       this.formUpdateEl.querySelector('.photo').src = json._photo;
-      //console.log(json);
     });
   }
 
